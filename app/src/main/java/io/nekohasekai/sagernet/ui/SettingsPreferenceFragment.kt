@@ -303,7 +303,6 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         val mtu = findPreference<EditTextPreference>(Key.MTU)!!
         mtu.setOnBindEditTextListener(EditTextPreferenceModifiers.Number)
         val allowAppsBypassVpn = findPreference<SwitchPreference>(Key.ALLOW_APPS_BYPASS_VPN)!!
-        val acquireWakelock = findPreference<SwitchPreference>(Key.ACQUIRE_WAKE_LOCK)!!
 
         val rulesProvider = findPreference<SimpleMenuPreference>(Key.RULES_PROVIDER)!!
         val rulesGeositeUrl = findPreference<LinkOrContentPreference>(Key.RULES_GEOSITE_URL)!!
@@ -382,7 +381,6 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         resolveDestinationForDirect.onPreferenceChangeListener = reloadListener
         mtu.onPreferenceChangeListener = reloadListener
         allowAppsBypassVpn.onPreferenceChangeListener = reloadListener
-        acquireWakelock.onPreferenceChangeListener = reloadListener
 
         tunImplementation.setOnPreferenceChangeListener { _, newValue ->
             enablePcap.isEnabled = newValue == "${TunImplementation.GVISOR}"
