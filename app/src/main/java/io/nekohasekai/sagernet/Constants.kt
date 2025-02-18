@@ -19,7 +19,7 @@
 
 package io.nekohasekai.sagernet
 
-const val CONNECTION_TEST_URL = "https://www.google.com/generate_204"
+const val CONNECTION_TEST_URL = "http://cp.cloudflare.com/"
 
 object Key {
 
@@ -354,9 +354,4 @@ object LogLevel {
     const val WARNING = 2
     const val INFO = 3
     const val DEBUG = 4
-}
-
-object FabStyle {
-    const val SagerNet = 0
-    const val Shadowsocks = 1
 }
