@@ -65,13 +65,15 @@ class ServiceNotification(
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
     }
 
-    val trafficStatistics = DataStore.profileTrafficStatistics
+    var trafficStatistics = DataStore.profileTrafficStatistics
     var showDirectSpeed = DataStore.showDirectSpeed
 
     private val callback: ISagerNetServiceCallback by lazy {
         object : ISagerNetServiceCallback.Stub() {
             override fun stateChanged(state: Int, profileName: String?, msg: String?) {}   // ignore
             override fun trafficUpdated(profileId: Long, stats: TrafficStats, isCurrent: Boolean) {
+                // 每次更新时手动获取最新的值
+                trafficStatistics = DataStore.profileTrafficStatistics
                 if (!trafficStatistics || profileId == 0L || !isCurrent) return
                 builder.apply {
                     if (showDirectSpeed) {
@@ -147,6 +149,8 @@ class ServiceNotification(
         Theme.apply(service)
         builder.color = service.getColorAttr(androidx.appcompat.R.attr.colorPrimary)
 
+        // 初始化时手动获取最新的值
+        trafficStatistics = DataStore.profileTrafficStatistics
         updateCallback(service.getSystemService<PowerManager>()?.isInteractive != false)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             service.registerReceiver(this, IntentFilter().apply {
@@ -190,6 +194,8 @@ class ServiceNotification(
     }
 
     private fun updateCallback(screenOn: Boolean) {
+        // 每次更新回调时手动获取最新的值
+        trafficStatistics = DataStore.profileTrafficStatistics
         if (!trafficStatistics) return
         if (screenOn) {
             service.data.binder.registerCallback(callback)
