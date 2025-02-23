@@ -65,7 +65,7 @@ class ServiceNotification(
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
     }
 
-    private val trafficStatistics get() = DataStore.profileTrafficStatistics
+    val trafficStatistics = DataStore.profileTrafficStatistics
     val showDirectSpeed = DataStore.showDirectSpeed
 
     private val callback: ISagerNetServiceCallback by lazy {
