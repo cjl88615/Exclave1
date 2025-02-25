@@ -5,7 +5,7 @@
     <string name="github">源代码</string>
     <string name="app_version">版本</string>
     <string name="logcat">导出调试信息</string>
-    <string name="menu_configuration">主界面</string>
+    <string name="menu_configuration">服务器列表</string>
     <string name="menu_group">分组</string>
     <string name="menu_about">关于</string>
     <string name="group_default">未分组</string>
