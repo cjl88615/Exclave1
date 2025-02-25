@@ -198,8 +198,6 @@
         <activity
             android:name="io.nekohasekai.sagernet.ui.profile.Http3SettingsActivity" />
         <activity
-            android:name="io.nekohasekai.sagernet.ui.profile.AnyTLSSettingsActivity" />
-        <activity
             android:name="io.nekohasekai.sagernet.ui.profile.ConfigSettingsActivity" />
         <activity
             android:name="io.nekohasekai.sagernet.ui.profile.ConfigEditActivity" />
@@ -296,7 +294,7 @@
             android:name="io.nekohasekai.sagernet.bg.TileService"
             android:directBootAware="true"
             android:exported="true"
-            android:icon="@drawable/ic_service_active"
+            android:icon="@drawable/2d"
             android:label="@string/tile_title"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:process=":bg"
