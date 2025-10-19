@@ -25,28 +25,34 @@
 
     <group
         android:id="@+id/misc"
-        android:checkableBehavior="single">
+        android:checkableBehavior="single"
+        android:visible="false">
         <item
             android:id="@+id/nav_logcat"
             android:icon="@drawable/ic_baseline_bug_report_24"
-            android:title="@string/menu_log" />
+            android:title="@string/menu_log"
+            android:visible="false" />
         <item
             android:id="@+id/nav_traffic"
             android:icon="@drawable/ic_baseline_transform_24"
-            android:title="@string/menu_traffic" />
+            android:title="@string/menu_traffic"
+            android:visible="false" />
         <item
             android:id="@+id/nav_tools"
             android:icon="@drawable/baseline_construction_24"
-            android:title="@string/menu_tools" />
+            android:title="@string/menu_tools"
+            android:visible="false" />
     </group>
 
     <group
         android:id="@+id/about"
-        android:checkableBehavior="single">
+        android:checkableBehavior="single"
+        android:visible="false">
         <item
             android:id="@+id/nav_about"
             android:icon="@drawable/ic_baseline_info_24"
-            android:title="@string/menu_about" />
+            android:title="@string/menu_about"
+            android:visible="false" />
     </group>
 
 </menu>
