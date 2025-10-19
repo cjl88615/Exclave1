@@ -19,7 +19,7 @@
 
 package io.nekohasekai.sagernet
 
-const val CONNECTION_TEST_URL = "https://www.google.com/generate_204"
+const val CONNECTION_TEST_URL = "http://wifi.vivo.com.cn/generate_204"
 
 object Key {
 

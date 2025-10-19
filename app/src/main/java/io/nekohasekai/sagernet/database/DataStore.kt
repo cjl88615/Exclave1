@@ -149,7 +149,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var bootstrapDns by configurationStore.stringNotBlack(Key.BOOTSTRAP_DNS)
     var useLocalDnsAsDirectDns by configurationStore.boolean(Key.USE_LOCAL_DNS_AS_DIRECT_DNS)
     var useLocalDnsAsBootstrapDns by configurationStore.boolean(Key.USE_LOCAL_DNS_AS_BOOTSTRAP_DNS)
-    var enableFakeDns by configurationStore.boolean(Key.ENABLE_FAKEDNS)
+    var enableFakeDns by configurationStore.boolean(Key.ENABLE_FAKEDNS) { true }
     var hijackDns by configurationStore.boolean(Key.HIJACK_DNS)
     var hosts by configurationStore.string(Key.DNS_HOSTS)
     var enableDnsRouting by configurationStore.boolean(Key.ENABLE_DNS_ROUTING) { true }
@@ -167,7 +167,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var pprofServer by configurationStore.string(Key.PPROF_SERVER)
     var enablePcap by configurationStore.boolean(Key.ENABLE_PCAP)
     var allowAppsBypassVpn by configurationStore.boolean(Key.ALLOW_APPS_BYPASS_VPN)
-    var acquireWakeLock by configurationStore.boolean(Key.ACQUIRE_WAKE_LOCK)
+    var acquireWakeLock by configurationStore.boolean(Key.ACQUIRE_WAKE_LOCK) { true }
     var stunServers by configurationStore.string(Key.STUN_SERVERS)
     var fabStyle by configurationStore.stringToInt(Key.FAB_STYLE) { 1 }
     var useIECUnit by configurationStore.boolean(Key.USE_IEC_UNIT)
@@ -238,7 +238,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var individual by configurationStore.string(Key.INDIVIDUAL)
     var showDirectSpeed by configurationStore.boolean(Key.SHOW_DIRECT_SPEED)
 
-    val persistAcrossReboot by configurationStore.boolean(Key.PERSIST_ACROSS_REBOOT)
+    val persistAcrossReboot by configurationStore.boolean(Key.PERSIST_ACROSS_REBOOT) { true }
     val canToggleLocked: Boolean get() = false//configurationStore.getBoolean(Key.DIRECT_BOOT_AWARE) == true
     val directBootAware: Boolean get() = SagerNet.directBootSupported && canToggleLocked
 
@@ -248,8 +248,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var requireTransproxy by configurationStore.boolean(Key.REQUIRE_TRANSPROXY)
     // var transproxyMode by configurationStore.stringToInt(Key.TRANSPROXY_MODE)
     var requireDnsInbound by configurationStore.boolean(Key.REQUIRE_DNS_INBOUND)
-    var connectionTestURL by configurationStore.string(Key.CONNECTION_TEST_URL) { CONNECTION_TEST_URL }
-    var alwaysShowAddress by configurationStore.boolean(Key.ALWAYS_SHOW_ADDRESS)
+    var connectionTestURL by configurationStore.string(Key.CONNECTION_TEST_URL) { "http://wifi.vivo.com.cn/generate_204" }
+    var alwaysShowAddress by configurationStore.boolean(Key.ALWAYS_SHOW_ADDRESS) { true }
     var showGroupName by configurationStore.boolean(Key.SHOW_GROUP_NAME)
 
     var tunImplementation by configurationStore.stringToInt(Key.TUN_IMPLEMENTATION) { TunImplementation.GVISOR }
