@@ -1,5 +1,6 @@
 /******************************************************************************
- * Copyright (C) 2023 by dyhkwong                                             *
+ *                                                                            *
+ * Copyright (C) 2023  dyhkwong                                               *
  *                                                                            *
  * This program is free software: you can redistribute it and/or modify       *
  * it under the terms of the GNU General Public License as published by       *
@@ -12,15 +13,12 @@
  * GNU General Public License for more details.                               *
  *                                                                            *
  * You should have received a copy of the GNU General Public License          *
- * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.      *
  *                                                                            *
  ******************************************************************************/
 
 package io.nekohasekai.sagernet.fmt.tuic5
 
-import cn.hutool.core.lang.UUID
-import cn.hutool.json.JSONArray
-import cn.hutool.json.JSONObject
 import io.nekohasekai.sagernet.LogLevel
 import io.nekohasekai.sagernet.RootCAProvider
 import io.nekohasekai.sagernet.database.DataStore
@@ -32,20 +30,37 @@ import io.nekohasekai.sagernet.fmt.tuic.supportedTuicRelayMode
 import io.nekohasekai.sagernet.ktx.joinHostPort
 import io.nekohasekai.sagernet.ktx.listByLineOrComma
 import io.nekohasekai.sagernet.ktx.queryParameter
+import io.nekohasekai.sagernet.ktx.toStringPretty
 import java.io.File
 import libcore.Libcore
+import org.json.JSONArray
+import org.json.JSONObject
 
 val supportedTuic5CongestionControl = arrayOf("cubic", "bbr", "new_reno")
 val supportedTuic5RelayMode = arrayOf("native", "quic")
 
 fun parseTuic(server: String): AbstractBean {
     var link = Libcore.parseURL(server)
-    try {
+    if (server.length >= 46 && !server.contains("version=")
+        && server.substring(7, 15).all {
+            (it >= '0' && it <= '9') || (it >= 'a' && it <= 'f') || (it >= 'A' && it <= 'F')
+        } && server.substring(15, 16) == "-"
+        && server.substring(16, 20).all {
+            (it >= '0' && it <= '9') || (it >= 'a' && it <= 'f') || (it >= 'A' && it <= 'F')
+        } && server.substring(20, 21) == "-"
+        && server.substring(21, 25).all {
+            (it >= '0' && it <= '9') || (it >= 'a' && it <= 'f') || (it >= 'A' && it <= 'F')
+        } && server.substring(25, 26) == "-"
+        && server.substring(26, 30).all {
+            (it >= '0' && it <= '9') || (it >= 'a' && it <= 'f') || (it >= 'A' && it <= 'F')
+        } && server.substring(30, 31) == "-"
+        && server.substring(31, 43).all {
+            (it >= '0' && it <= '9') || (it >= 'a' && it <= 'f') || (it >= 'A' && it <= 'F')
+        } && server.substring(43, 46) == "%3A"
+    ) {
         // v2rayN broken format
-        if (server.length > 46 && UUID.fromString(server.substring(7, 43)) != null && server.substring(43, 46) == "%3A" && !server.contains("version=")) {
-            link = Libcore.parseURL(server.substring(0, 43) + ":" + server.substring(46, server.length))
-        }
-    } catch (_: Exception) {}
+        link = Libcore.parseURL(server.substring(0, 43) + ":" + server.substring(46, server.length))
+    }
     val version = link.queryParameter("version")
     if (version == "4" || (version != "5" && link.password.isEmpty())) {
         return TuicBean().apply {
@@ -186,52 +201,52 @@ fun Tuic5Bean.toUri(): String? {
 
 fun Tuic5Bean.buildTuic5Config(port: Int, forExport: Boolean, cacheFile: (() -> File)?): String {
     return JSONObject().also {
-        it["relay"] = JSONObject().also {
+        it.put("relay", JSONObject().also {
             if (sni.isNotEmpty()) {
-                it["server"] = joinHostPort(sni, finalPort)
-                it["ip"] = finalAddress
+                it.put("server", joinHostPort(sni, finalPort))
+                it.put("ip", finalAddress)
             } else {
-                it["server"] = joinHostPort(serverAddress, finalPort)
-                it["ip"] = finalAddress
+                it.put("server", joinHostPort(serverAddress, finalPort))
+                it.put("ip", finalAddress)
             }
-            it["uuid"] = uuid
-            it["password"] = password
+            it.put("uuid", uuid)
+            it.put("password", password)
 
             if (certificates.isNotEmpty() && cacheFile != null) {
                 val caFile = cacheFile()
                 caFile.writeText(certificates)
-                it["certificates"] = JSONArray().apply {
+                it.put("certificates", JSONArray().apply {
                     put(caFile.absolutePath)
-                }
+                })
             } else if (!forExport && DataStore.providerRootCA == RootCAProvider.SYSTEM && certificates.isEmpty()) {
-                it["certificates"] = JSONArray().apply {
+                it.put("certificates", JSONArray().apply {
                     // https://github.com/maskedeken/tuic/commit/88e57f6e41ae8985edd8f620950e3f8e7d29e1cc
                     // workaround tuic can't load Android system root certificates without forking it
                     File("/system/etc/security/cacerts").listFiles()?.forEach { put(it) }
-                }
+                })
             }
 
-            it["udp_relay_mode"] = udpRelayMode
+            it.put("udp_relay_mode", udpRelayMode)
             if (alpn.isNotEmpty()) {
-                it["alpn"] = JSONArray(alpn.listByLineOrComma())
+                it.put("alpn", JSONArray(alpn.listByLineOrComma()))
             }
-            it["congestion_control"] = congestionControl
-            it["disable_sni"] = disableSNI
-            it["zero_rtt_handshake"] = zeroRTTHandshake
+            it.put("congestion_control", congestionControl)
+            it.put("disable_sni", disableSNI)
+            it.put("zero_rtt_handshake", zeroRTTHandshake)
             if (allowInsecure) {
-                it["skip_cert_verify"] = true
+                it.put("skip_cert_verify", true)
             }
-        }
-        it["local"] = JSONObject().also {
-            it["server"] = joinHostPort(LOCALHOST, port)
-            it["max_packet_size"] = mtu
-        }
-        it["log_level"] = when (DataStore.logLevel) {
+        })
+        it.put("local", JSONObject().also {
+            it.put("server", joinHostPort(LOCALHOST, port))
+            it.put("max_packet_size", mtu)
+        })
+        it.put("log_level", when (DataStore.logLevel) {
             LogLevel.DEBUG -> "trace"
             LogLevel.INFO -> "info"
             LogLevel.WARNING -> "warn"
             LogLevel.ERROR -> "error"
             else -> "error"
-        }
+        })
     }.toStringPretty()
 }

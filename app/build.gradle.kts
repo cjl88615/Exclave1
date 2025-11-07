@@ -1,9 +1,9 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    id("com.google.devtools.ksp") version "2.2.20-2.0.4"
     id("kotlin-parcelize")
     id("com.google.protobuf")
+    id("com.google.devtools.ksp")
 }
 
 setupApp()
@@ -49,8 +49,6 @@ dependencies {
     implementation("com.takisoft.preferencex:preferencex-colorpicker:1.1.0")
 
     implementation("com.google.android.material:material:1.13.0")
-    implementation("cn.hutool:hutool-core:5.8.40")
-    implementation("cn.hutool:hutool-json:5.8.40")
     implementation("com.google.code.gson:gson:2.13.2")
     implementation("com.google.zxing:core:3.5.3")
 
@@ -58,9 +56,8 @@ dependencies {
     implementation("com.github.daniel-stoneuk:material-about-library:3.2.0-rc01")
     implementation("com.jakewharton:process-phoenix:3.0.0")
     implementation("com.esotericsoftware:kryo:5.6.2")
-    implementation("com.sshtools:jini-lib:0.6.0")
+    implementation("com.sshtools:jini-lib:0.6.2")
     implementation("io.noties.markwon:core:4.6.2")
-    implementation("com.twofortyfouram:android-plugin-api-for-locale:1.0.4")
 
     implementation("com.simplecityapps:recyclerview-fastscroll:2.0.1") {
         exclude(group = "androidx.recyclerview")

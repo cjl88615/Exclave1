@@ -40,8 +40,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.preference.PreferenceDataStore
-import cn.hutool.core.codec.Base64Decoder
-import cn.hutool.core.util.ZipUtil
 import com.google.android.material.bottomappbar.BottomAppBar.FAB_ALIGNMENT_MODE_CENTER
 import com.google.android.material.bottomappbar.BottomAppBar.FAB_ALIGNMENT_MODE_END
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -65,6 +63,9 @@ import io.nekohasekai.sagernet.group.GroupUpdater
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.utils.PackageCache
 import io.noties.markwon.Markwon
+import libcore.Libcore
+import kotlin.io.encoding.Base64
+import kotlin.system.exitProcess
 
 class MainActivity : ThemedActivity(),
     SagerConnection.Callback,
@@ -162,14 +163,47 @@ class MainActivity : ThemedActivity(),
             onNewIntent(intent)
         }
 
-        if (DataStore.configurationStore.getBoolean("isNotFirstRun") != true) {
-            DataStore.configurationStore.putBoolean("isNotFirstRun", true)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (app.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
-                }
+        if (DataStore.configurationStore.getBoolean(
+                if (Libcore.buildWithClash()) "gplv3OnlyAccepted"
+                else "gplv3OrLaterAccepted") != true) {
+            runOnMainDispatcher {
+                MaterialAlertDialogBuilder(this@MainActivity).apply {
+                    setTitle(R.string.license)
+                    setMessage(if (Libcore.buildWithClash()) {
+                        R.string.license_gpl_v3_only
+                    } else {
+                        R.string.license_gpl_v3_or_later
+                    })
+                    setPositiveButton(android.R.string.ok) { _, _ ->
+                        DataStore.configurationStore.putBoolean(
+                            if (Libcore.buildWithClash()) "gplv3OnlyAccepted"
+                            else "gplv3OrLaterAccepted", true)
+                        if (DataStore.configurationStore.getBoolean("permissionRequested") != true) {
+                            DataStore.configurationStore.putBoolean("permissionRequested", true)
+                            PackageCache.awaitLoadSync()
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                if (app.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                                    ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
+                                }
+                            }
+                        }
+                    }
+                    setOnCancelListener { _ ->
+                        DataStore.configurationStore.putBoolean(
+                            if (Libcore.buildWithClash()) "gplv3OnlyAccepted"
+                            else "gplv3OrLaterAccepted", true)
+                        if (DataStore.configurationStore.getBoolean("permissionRequested") != true) {
+                            DataStore.configurationStore.putBoolean("permissionRequested", true)
+                            PackageCache.awaitLoadSync()
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                if (app.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                                    ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
+                                }
+                            }
+                        }
+                    }
+                }.show()
             }
-            PackageCache.awaitLoadSync()
         }
     }
 
@@ -223,7 +257,7 @@ class MainActivity : ThemedActivity(),
             val data = uri.encodedQuery.takeIf { !it.isNullOrBlank() } ?: return
             try {
                 group = KryoConverters.deserialize(
-                    ProxyGroup().apply { export = true }, ZipUtil.unZlib(Base64Decoder.decode(data))
+                    ProxyGroup().apply { export = true }, Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT).decode(data).zlibDecompress()
                 ).apply {
                     export = false
                 }

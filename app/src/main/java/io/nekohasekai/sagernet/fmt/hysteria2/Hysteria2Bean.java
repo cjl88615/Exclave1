@@ -1,6 +1,6 @@
 /******************************************************************************
  *                                                                            *
- * Copyright (C) 2021 by nekohasekai <contact-sagernet@sekai.icu>             *
+ * Copyright (C) 2023  dyhkwong                                               *
  *                                                                            *
  * This program is free software: you can redistribute it and/or modify       *
  * it under the terms of the GNU General Public License as published by       *
@@ -13,7 +13,7 @@
  * GNU General Public License for more details.                               *
  *                                                                            *
  * You should have received a copy of the GNU General Public License          *
- * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.      *
  *                                                                            *
  ******************************************************************************/
 
@@ -31,6 +31,7 @@ import io.nekohasekai.sagernet.database.DataStore;
 import io.nekohasekai.sagernet.fmt.AbstractBean;
 import io.nekohasekai.sagernet.fmt.KryoConverters;
 import io.nekohasekai.sagernet.ktx.NetsKt;
+import libcore.Libcore;
 
 public class Hysteria2Bean extends AbstractBean {
 
@@ -202,7 +203,7 @@ public class Hysteria2Bean extends AbstractBean {
 
     @Override
     public String displayAddress() {
-        if (NetsKt.isIpv6Address(serverAddress)) {
+        if (Libcore.isIPv6(serverAddress)) {
             return "[" + serverAddress + "]:" + serverPorts;
         } else {
             return NetsKt.wrapIDN(serverAddress) + ":" + serverPorts;

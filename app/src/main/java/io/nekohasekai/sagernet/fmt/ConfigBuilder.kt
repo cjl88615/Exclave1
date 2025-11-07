@@ -23,9 +23,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
-import cn.hutool.core.codec.Base64
-import cn.hutool.json.JSONArray
-import cn.hutool.json.JSONObject
 import com.github.shadowsocks.plugin.PluginConfiguration
 import com.github.shadowsocks.plugin.PluginManager
 import com.google.gson.JsonSyntaxException
@@ -107,21 +104,27 @@ import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.WireGuardOutboundConfigurat
 import io.nekohasekai.sagernet.fmt.v2ray.VLESSBean
 import io.nekohasekai.sagernet.fmt.v2ray.VMessBean
 import io.nekohasekai.sagernet.fmt.wireguard.WireGuardBean
+import io.nekohasekai.sagernet.group.optArray
+import io.nekohasekai.sagernet.group.optBool
+import io.nekohasekai.sagernet.group.optInteger
+import io.nekohasekai.sagernet.group.optObject
+import io.nekohasekai.sagernet.group.optStr
 import io.nekohasekai.sagernet.ktx.app
-import io.nekohasekai.sagernet.group.getAny
-import io.nekohasekai.sagernet.group.getBoolean
-import io.nekohasekai.sagernet.group.getInteger
-import io.nekohasekai.sagernet.group.getString
-import io.nekohasekai.sagernet.ktx.isIpAddress
+import io.nekohasekai.sagernet.ktx.filterIsInstance
 import io.nekohasekai.sagernet.ktx.isValidHysteriaMultiPort
 import io.nekohasekai.sagernet.ktx.joinHostPort
 import io.nekohasekai.sagernet.ktx.listByLine
 import io.nekohasekai.sagernet.ktx.listByLineOrComma
 import io.nekohasekai.sagernet.ktx.mkPort
+import io.nekohasekai.sagernet.ktx.optStringOrNull
 import io.nekohasekai.sagernet.ktx.toHysteriaPort
 import io.nekohasekai.sagernet.ktx.unescapeLineFeed
+import io.nekohasekai.sagernet.ktx.uuidOrGenerate
 import io.nekohasekai.sagernet.utils.PackageCache
+import kotlin.io.encoding.Base64
 import libcore.Libcore
+import org.json.JSONArray
+import org.json.JSONObject
 
 const val TAG_SOCKS = "socks"
 const val TAG_HTTP = "http"
@@ -482,7 +485,7 @@ fun buildV2RayConfig(
                         type = "field"
                         outboundTag = TAG_DIRECT
                         when {
-                            bean.host.isIpAddress() -> {
+                            Libcore.isIP(bean.host) -> {
                                 ip = listOf(bean.host)
                                 if (DataStore.domainStrategy != "AsIs") {
                                     skipDomain = true
@@ -491,7 +494,7 @@ fun buildV2RayConfig(
                             bean.host.isNotEmpty() -> {
                                 domains = listOf(bean.host)
                             }
-                            bean.serverAddress.isIpAddress() -> {
+                            Libcore.isIP(bean.serverAddress) -> {
                                 ip = listOf(bean.serverAddress)
                                 if (DataStore.domainStrategy != "AsIs") {
                                     skipDomain = true
@@ -594,7 +597,7 @@ fun buildV2RayConfig(
                                                     port = bean.serverPort
                                                     users = listOf(VMessOutboundConfigurationObject.ServerObject.UserObject()
                                                         .apply {
-                                                            id = bean.uuidOrGenerate()
+                                                            id = uuidOrGenerate(bean.uuid)
                                                             if (bean.alterId > 0) {
                                                                 alterId = bean.alterId
                                                             }
@@ -632,7 +635,7 @@ fun buildV2RayConfig(
                                                     port = bean.serverPort
                                                     users = listOf(VLESSOutboundConfigurationObject.ServerObject.UserObject()
                                                         .apply {
-                                                            id = bean.uuidOrGenerate()
+                                                            id = uuidOrGenerate(bean.uuid)
                                                             encryption = bean.encryption
                                                             if (bean.flow.isNotEmpty()) {
                                                                 flow = bean.flow
@@ -1008,30 +1011,39 @@ fun buildV2RayConfig(
                                                     mode = bean.splithttpMode
                                                 }
                                                 if (bean.splithttpExtra.isNotEmpty()) {
-                                                    JSONObject(bean.splithttpExtra).also { extra ->
-                                                        // fuck RPRX `extra`
-                                                        extra.getInteger("scMaxEachPostBytes")?.also {
-                                                            scMaxEachPostBytes = it.toString()
-                                                        } ?: extra.getString("scMaxEachPostBytes")?.also {
-                                                            scMaxEachPostBytes = it
+                                                    try {
+                                                        JSONObject(bean.splithttpExtra).also { extra ->
+                                                            // fuck RPRX `extra`
+                                                            extra.optInteger("scMaxEachPostBytes")?.also {
+                                                                scMaxEachPostBytes = it.toString()
+                                                            } ?: extra.optStr("scMaxEachPostBytes")?.also {
+                                                                scMaxEachPostBytes = it
+                                                            }
+                                                            extra.optInteger("scMinPostsIntervalMs")?.also {
+                                                                scMinPostsIntervalMs = it.toString()
+                                                            } ?: extra.optStr("scMinPostsIntervalMs")?.also {
+                                                                scMinPostsIntervalMs = it
+                                                            }
+                                                            extra.optInteger("xPaddingBytes")?.also {
+                                                                xPaddingBytes = it.toString()
+                                                            } ?: extra.optStr("xPaddingBytes")?.also {
+                                                                xPaddingBytes = it
+                                                            }
+                                                            extra.optBool("noGRPCHeader")?.also {
+                                                                noGRPCHeader = it
+                                                            }
+                                                            @Suppress("UNCHECKED_CAST")
+                                                            extra.optObject("headers")?.also {
+                                                                headers = mutableMapOf<String, String>()
+                                                                for (key in it.keys()) {
+                                                                    it.optStringOrNull(key)?.also { value ->
+                                                                        headers[key] = value
+                                                                    }
+                                                                }
+                                                            }
                                                         }
-                                                        extra.getInteger("scMinPostsIntervalMs")?.also {
-                                                            scMinPostsIntervalMs = it.toString()
-                                                        } ?: extra.getString("scMinPostsIntervalMs")?.also {
-                                                            scMinPostsIntervalMs = it
-                                                        }
-                                                        extra.getInteger("xPaddingBytes")?.also {
-                                                            xPaddingBytes = it.toString()
-                                                        } ?: extra.getString("xPaddingBytes")?.also {
-                                                            xPaddingBytes = it
-                                                        }
-                                                        extra.getBoolean("noGRPCHeader")?.also {
-                                                            noGRPCHeader = it
-                                                        }
-                                                        @Suppress("UNCHECKED_CAST")
-                                                        (extra.getAny("headers") as? Map<String, String>)?.also {
-                                                            headers = it
-                                                        }
+                                                    } catch (e: Exception) {
+                                                        error(e)
                                                     }
                                                 }
                                                 if (bean.shUseBrowserForwarder) {
@@ -1133,11 +1145,11 @@ fun buildV2RayConfig(
                                         mtu = bean.mtu
                                         val values = bean.reserved.listByLineOrComma()
                                         if (values.size == 3) {
-                                            val reserved0 = values[0].toIntOrNull()
-                                            val reserved1 = values[1].toIntOrNull()
-                                            val reserved2 = values[2].toIntOrNull()
+                                            val reserved0 = values[0].toUByteOrNull()
+                                            val reserved1 = values[1].toUByteOrNull()
+                                            val reserved2 = values[2].toUByteOrNull()
                                             if (reserved0 != null && reserved1 != null && reserved2 != null) {
-                                                reserved = listOf(reserved0, reserved1, reserved2)
+                                                reserved = listOf(reserved0.toInt(), reserved1.toInt(), reserved2.toInt())
                                             }
                                         } else {
                                             val array = Base64.decode(bean.reserved)
@@ -1718,7 +1730,11 @@ fun buildV2RayConfig(
                 }
                 val observatoryItem = MultiObservatoryObject.MultiObservatoryItem().apply {
                     tag = "observer-$tagOutbound"
-                    settings = JSONObject(observatory)
+                    settings = mutableMapOf<String, Any>()
+                    settings.put("probeURL", observatory.probeURL)
+                    settings.put("probeInterval", observatory.probeInterval)
+                    settings.put("enableConcurrency", observatory.enableConcurrency)
+                    settings.put("subjectSelector", observatory.subjectSelector)
                 }
                 if (multiObservatory == null) multiObservatory = MultiObservatoryObject().apply {
                     observers = mutableListOf()
@@ -1977,10 +1993,6 @@ fun buildV2RayConfig(
         outbounds.add(OutboundObject().apply {
             tag = TAG_BLOCK
             protocol = "blackhole"
-            /* settings = LazyOutboundConfigurationObject(this,
-                 BlackholeOutboundConfigurationObject().apply {
-                     keepConnection = true
-                 })*/
         })
 
         if (!forTest && DataStore.requireDnsInbound && DataStore.localDNSPort > 0) {
@@ -2006,6 +2018,9 @@ fun buildV2RayConfig(
             settings = LazyOutboundConfigurationObject(this,
                 DNSOutboundConfigurationObject().apply {
                     userLevel = 1
+                    if (DataStore.experimentalFlags.split("\n").any { it == "lookupAsExchange=true" }) {
+                        lookupAsExchange = true
+                    }
                 })
         })
 
@@ -2024,7 +2039,7 @@ fun buildV2RayConfig(
                     bean.serverAddresses.listByLineOrComma().forEach {
                         when {
                             it.isEmpty() -> {}
-                            it.isIpAddress() -> {
+                            Libcore.isIP(it) -> {
                                 bypassIP.add(it)
                             }
                             else -> {
@@ -2033,7 +2048,7 @@ fun buildV2RayConfig(
                         }
                     }
                 } else {
-                    if (!serverAddress.isIpAddress()) {
+                    if (!Libcore.isIP(serverAddress)) {
                         bypassDomainSkipFakeDns.add("full:$serverAddress")
                     } else {
                         bypassIP.add(serverAddress)
@@ -2071,7 +2086,7 @@ fun buildV2RayConfig(
             try {
                 if (it.lowercase() != "localhost" && it.lowercase() != "fakedns") {
                     val url = Libcore.parseURL(it)
-                    if (!url.host.isIpAddress()) {
+                    if (!url.host.isEmpty() && !Libcore.isIP(url.host)) {
                         bypassDomainSkipFakeDns.add("full:${url.host}")
                     }
                 }
@@ -2082,7 +2097,7 @@ fun buildV2RayConfig(
             try {
                 if (it.lowercase() != "localhost" && it.lowercase() != "fakedns") {
                     val url = Libcore.parseURL(it)
-                    if (!url.host.isIpAddress()) {
+                    if (!url.host.isEmpty() && !Libcore.isIP(url.host)) {
                         bootstrapDomain.add("full:${url.host}")
                     }
                 }
@@ -2129,7 +2144,7 @@ fun buildV2RayConfig(
                             address = it
                             domains = bootstrapDomain.toList() // v2fly/v2ray-core#1558, v2fly/v2ray-core#1855
                             queryStrategy = directDnsQueryStrategy
-                            if (!it.contains("+local://") && it != "localhost") {
+                            if (!it.lowercase().contains("+local://") && it.lowercase() != "localhost") {
                                 tag = TAG_DNS_DIRECT
                                 hasDnsTagDirect = true
                             }
@@ -2145,7 +2160,7 @@ fun buildV2RayConfig(
                             // skip fake DNS for server addresses and DNS server addresses
                             domains = bypassDomainSkipFakeDns.toList()
                             queryStrategy = directDnsQueryStrategy
-                            if (!it.contains("+local://") && it != "localhost") {
+                            if (!it.lowercase().contains("+local://") && it.lowercase() != "localhost") {
                                 tag = TAG_DNS_DIRECT
                                 hasDnsTagDirect = true
                             }
@@ -2289,7 +2304,7 @@ fun buildCustomConfig(proxy: ProxyEntity, port: Int): V2rayBuildResult {
 
     val bean = proxy.configBean!!
     val config = JSONObject(bean.content)
-    val inbounds = config.getJSONArray("inbounds")
+    val inbounds = config.optArray("inbounds")
         ?.filterIsInstance<JSONObject>()
         ?.map { gson.fromJson(it.toString(), InboundObject::class.java) }
         ?.toMutableList() ?: ArrayList()
@@ -2331,34 +2346,12 @@ fun buildCustomConfig(proxy: ProxyEntity, port: Int): V2rayBuildResult {
         })
     }
 
-    /* var requireWs = false
-    var wsPort = 0
-    if (config.containsKey("browserForwarder")) {
-        config["browserForwarder"] = JSONObject(gson.toJson(BrowserForwarderObject().apply {
-            requireWs = true
-            listenAddr = LOCALHOST
-            listenPort = mkPort()
-            wsPort = listenPort
-        }))
-    }
-
-    var requireSh = false
-    var shPort = 0
-    if (config.containsKey("browserDialer")) {
-        config["browserDialer"] = JSONObject(gson.toJson(BrowserDialerObject().apply {
-            requireSh = true
-            listenAddr = LOCALHOST
-            listenPort = mkPort()
-            shPort = listenPort
-        }))
-    } */
-
     val outbounds = try {
-        config.getJSONArray("outbounds")?.filterIsInstance<JSONObject>()?.map { it ->
+        config.optArray("outbounds")?.filterIsInstance<JSONObject>()?.map { it ->
             gson.fromJson(it.toString().takeIf { it.isNotEmpty() } ?: "{}",
                 OutboundObject::class.java)
         }?.toMutableList()
-    } catch (e: JsonSyntaxException) {
+    } catch (_: JsonSyntaxException) {
         null
     }
     var flushOutbounds = false
@@ -2396,15 +2389,15 @@ fun buildCustomConfig(proxy: ProxyEntity, port: Int): V2rayBuildResult {
     }
 
     inbounds.forEach { it.init() }
-    config["inbounds"] = JSONArray(inbounds.map { JSONObject(gson.toJson(it)) })
+    config.put("inbounds", JSONArray(inbounds.map { JSONObject(gson.toJson(it)) }))
     if (flushOutbounds) {
         outbounds!!.forEach { it.init() }
-        config["outbounds"] = JSONArray(outbounds.map { JSONObject(gson.toJson(it)) })
+        config.put("outbounds", JSONArray(outbounds.map { JSONObject(gson.toJson(it)) }))
     }
 
 
     return V2rayBuildResult(
-        config.toStringPretty(),
+        config.toString(),
         emptyList(),
         false, // requireWs
         0, // wsPort

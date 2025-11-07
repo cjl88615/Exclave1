@@ -1,6 +1,6 @@
 /******************************************************************************
  *                                                                            *
- * Copyright (C) 2024 by dyhkwong                                             *
+ * Copyright (C) 2024  dyhkwong                                               *
  * Copyright (C) 2021 by nekohasekai <contact-sagernet@sekai.icu>             *
  *                                                                            *
  * This program is free software: you can redistribute it and/or modify       *
@@ -14,14 +14,12 @@
  * GNU General Public License for more details.                               *
  *                                                                            *
  * You should have received a copy of the GNU General Public License          *
- * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.      *
  *                                                                            *
  ******************************************************************************/
 
 package io.nekohasekai.sagernet.group
 
-import cn.hutool.core.codec.Base64
-import cn.hutool.core.lang.UUID
 import com.github.shadowsocks.plugin.PluginOptions
 import io.nekohasekai.sagernet.fmt.AbstractBean
 import io.nekohasekai.sagernet.fmt.anytls.AnyTLSBean
@@ -50,6 +48,7 @@ import io.nekohasekai.sagernet.fmt.v2ray.VMessBean
 import io.nekohasekai.sagernet.fmt.v2ray.supportedVmessMethod
 import io.nekohasekai.sagernet.fmt.wireguard.WireGuardBean
 import io.nekohasekai.sagernet.ktx.*
+import kotlin.io.encoding.Base64
 import libcore.Libcore
 
 fun parseClashProxies(proxies: List<Map<String, Any?>>): List<AbstractBean> {
@@ -215,11 +214,7 @@ fun parseClashProxy(proxy: Map<String, Any?>): List<AbstractBean> {
                     bean.sni = proxy.getClashString("servername")
                 }
                 proxy.getClashString("uuid")?.also {
-                    bean.uuid = try {
-                        UUID.fromString(it).toString()
-                    } catch (_: Exception) {
-                        uuid5(it)
-                    }
+                    bean.uuid = uuidOrGenerate(it)
                 }
             }
             if (bean.security == "tls") {
@@ -678,15 +673,14 @@ fun parseClashProxy(proxy: Map<String, Any?>): List<AbstractBean> {
                             it[2].toString()
                         ).joinToString(",")
                     }
-                } ?: {
-                    Base64.decode(proxy.getClashString("reserved"))?.also {
-                        if (it.size == 3) {
-                            reserved = listOf(
-                                it[0].toUByte().toInt().toString(),
-                                it[1].toUByte().toInt().toString(),
-                                it[2].toUByte().toInt().toString()
-                            ).joinToString(",")
-                        }
+                } ?: proxy.getClashString("reserved")?.also {
+                    val arr = Base64.decode(it)
+                    if (arr.size == 3) {
+                        reserved = listOf(
+                            arr[0].toUByte().toInt().toString(),
+                            arr[1].toUByte().toInt().toString(),
+                            arr[2].toUByte().toInt().toString()
+                        ).joinToString(",")
                     }
                 }
             }
@@ -708,15 +702,14 @@ fun parseClashProxy(proxy: Map<String, Any?>): List<AbstractBean> {
                                     it[2].toString()
                                 ).joinToString(",")
                             }
-                        } ?: {
-                            Base64.decode(peer.getClashString("reserved"))?.also {
-                                if (it.size == 3) {
-                                    reserved = listOf(
-                                        it[0].toUByte().toInt().toString(),
-                                        it[1].toUByte().toInt().toString(),
-                                        it[2].toUByte().toInt().toString()
-                                    ).joinToString(",")
-                                }
+                        } ?: peer.getClashString("reserved")?.also {
+                            val arr = Base64.decode(it)
+                            if (arr.size == 3) {
+                                reserved = listOf(
+                                    arr[0].toUByte().toInt().toString(),
+                                    arr[1].toUByte().toInt().toString(),
+                                    arr[2].toUByte().toInt().toString()
+                                ).joinToString(",")
                             }
                         }
                     })

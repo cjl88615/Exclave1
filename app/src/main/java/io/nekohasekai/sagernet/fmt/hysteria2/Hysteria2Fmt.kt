@@ -1,6 +1,6 @@
 /******************************************************************************
  *                                                                            *
- * Copyright (C) 2021 by nekohasekai <contact-sagernet@sekai.icu>             *
+ * Copyright (C) 2023  dyhkwong                                               *
  *                                                                            *
  * This program is free software: you can redistribute it and/or modify       *
  * it under the terms of the GNU General Public License as published by       *
@@ -13,7 +13,7 @@
  * GNU General Public License for more details.                               *
  *                                                                            *
  * You should have received a copy of the GNU General Public License          *
- * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.      *
  *                                                                            *
  ******************************************************************************/
 
@@ -23,7 +23,6 @@ import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.TunImplementation
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.fmt.LOCALHOST
-import io.nekohasekai.sagernet.ktx.isIpv6Address
 import io.nekohasekai.sagernet.ktx.isValidHysteriaMultiPort
 import io.nekohasekai.sagernet.ktx.isValidHysteriaPort
 import io.nekohasekai.sagernet.ktx.joinHostPort
@@ -164,7 +163,7 @@ fun Hysteria2Bean.buildHysteria2Config(port: Int, isVpn: Boolean = false, cacheF
 
     val hostPort = if (usePortHopping) {
         // Hysteria 2 port hopping is incompatible with chain proxy
-        if (serverAddress.isIpv6Address()) {
+        if (Libcore.isIPv6(serverAddress)) {
             "[$serverAddress]:$serverPorts"
         } else {
             "$serverAddress:$serverPorts"

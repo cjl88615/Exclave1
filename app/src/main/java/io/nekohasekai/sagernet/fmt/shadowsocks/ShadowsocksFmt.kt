@@ -19,12 +19,15 @@
 
 package io.nekohasekai.sagernet.fmt.shadowsocks
 
-import cn.hutool.core.codec.Base64
 import com.github.shadowsocks.plugin.PluginConfiguration
 import com.github.shadowsocks.plugin.PluginOptions
-import io.nekohasekai.sagernet.ktx.decodeBase64UrlSafe
+import io.nekohasekai.sagernet.ktx.decodeBase64
+import io.nekohasekai.sagernet.ktx.optIntOrNull
+import io.nekohasekai.sagernet.ktx.optStringOrNull
 import io.nekohasekai.sagernet.ktx.queryParameter
 import libcore.Libcore
+import org.json.JSONObject
+import kotlin.io.encoding.Base64
 
 val supportedShadowsocksMethod = arrayOf(
     "aes-128-gcm","aes-192-gcm","aes-256-gcm",
@@ -65,7 +68,7 @@ fun parseShadowsocks(url: String): ShadowsocksBean {
     if (link.port == 0 && link.username.isEmpty() && link.password.isEmpty()) {
         // pre-SIP002, https://shadowsocks.org/doc/configs.html#uri-and-qr-code
         // example: ss://YmYtY2ZiOnRlc3QvIUAjOkAxOTIuMTY4LjEwMC4xOjg4ODg#example-server
-        val plainUri = url.substring("ss://".length).substringBefore("#").decodeBase64UrlSafe()
+        val plainUri = url.substring("ss://".length).substringBefore("#").decodeBase64()
 
         return ShadowsocksBean().apply {
             serverAddress = plainUri.substringAfterLast("@").substringBeforeLast(":")
@@ -110,14 +113,14 @@ fun parseShadowsocks(url: String): ShadowsocksBean {
         // example: ss://YWVzLTEyOC1nY206dGVzdA@127.0.0.1:8888#Example1
         serverAddress = link.host
         serverPort = link.port
-        method = when (val m = link.username?.decodeBase64UrlSafe()?.substringBefore(":")?.lowercase()) {
+        method = when (val m = link.username?.decodeBase64()?.substringBefore(":")?.lowercase()) {
             in supportedShadowsocksMethod -> m
             "plain", "dummy" -> "none"
             "chacha20-poly1305" -> "chacha20-ietf-poly1305"
             "xchacha20-poly1305" -> "xchacha20-ietf-poly1305"
             else -> error("unsupported method")
         }
-        password = link.username.decodeBase64UrlSafe().substringAfter(":")
+        password = link.username.decodeBase64().substringAfter(":")
         plugin = link.queryParameter("plugin")
         name = link.fragment
         fixInvalidParams()
@@ -139,7 +142,7 @@ fun ShadowsocksBean.toUri(): String? {
             error("empty password")
         }
     } else {
-        builder.username = Base64.encodeUrlSafe("$method:$password")
+        builder.username = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT).encode("$method:$password".toByteArray())
     }
 
     if (plugin.isNotEmpty() && PluginConfiguration(plugin).selected.isNotEmpty()) {
@@ -160,13 +163,13 @@ fun ShadowsocksBean.toUri(): String? {
 
 }
 
-fun parseShadowsocksConfig(config: Map<String, Any?>): ShadowsocksBean? {
+fun parseShadowsocksConfig(config: JSONObject): ShadowsocksBean? {
     return ShadowsocksBean().apply {
-        serverAddress = config["server"] as? String ?: return null
-        serverPort = config["server_port"] as? Int ?: return null
-        password = config["password"] as? String
+        serverAddress = config.optStringOrNull("server") ?: return null
+        serverPort = config.optIntOrNull("server_port") ?: return null
+        password = config.optStringOrNull("password")
 
-        var m = (config["method"] as? String)?.lowercase()
+        var m = config.optStringOrNull("method")?.lowercase()
         if (!m.isNullOrEmpty() && m.contains("_") && !m.contains("-")) {
             m = m.replace("_", "-")
         }
@@ -181,12 +184,12 @@ fun parseShadowsocksConfig(config: Map<String, Any?>): ShadowsocksBean? {
             "", null -> error("unsupported method") // different impl has different default value
             else -> error("unsupported method")
         }
-        val pluginId = when (val id = config["plugin"] as? String) {
+        val pluginId = when (val id = config.optStringOrNull("plugin")) {
             "simple-obfs" -> "obfs-local"
             else -> id
         }
         if (!pluginId.isNullOrEmpty()) {
-            plugin = PluginOptions(pluginId, config["plugin_opts"] as? String).toString(trimId = false)
+            plugin = PluginOptions(pluginId, config.optStringOrNull("plugin_opts")).toString(trimId = false)
         }
         name = config["remarks"] as? String
     }

@@ -250,6 +250,17 @@ abstract class V2RayInstance(
                         configFile.writeText(config)
                         cacheFiles.add(configFile)
 
+                        if (bean.certificate.isNotEmpty()) {
+                            val caFile = File(
+                                context.noBackupFilesDir,
+                                "naive_" + SystemClock.elapsedRealtime() + ".ca"
+                            )
+                            caFile.parentFile?.mkdirs()
+                            caFile.writeText(bean.certificate)
+                            cacheFiles.add(caFile)
+                            env["SSL_CERT_FILE"] = caFile.absolutePath
+                        }
+
                         val commands = mutableListOf(
                             initPlugin("naive-plugin").path, configFile.absolutePath
                         )
@@ -401,7 +412,16 @@ abstract class V2RayInstance(
                             "-c",
                             configFile.absolutePath,
                         )
-                        
+                        if (bean.certificates.isNotEmpty()) {
+                            val caFile = File(
+                                context.noBackupFilesDir,
+                                "juicity_" + SystemClock.elapsedRealtime() + ".ca"
+                            )
+                            caFile.parentFile?.mkdirs()
+                            caFile.writeText(bean.certificates)
+                            cacheFiles.add(caFile)
+                            env["SSL_CERT_FILE"] = caFile.absolutePath
+                        }
                         processes.start(commands, env)
                     }
                     bean is ShadowQUICBean -> {

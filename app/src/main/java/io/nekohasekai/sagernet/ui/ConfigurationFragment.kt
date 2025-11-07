@@ -50,7 +50,6 @@ import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
-import cn.hutool.core.lang.Validator.isUrl
 import io.nekohasekai.sagernet.*
 import io.nekohasekai.sagernet.aidl.TrafficStats
 import io.nekohasekai.sagernet.bg.BaseService
@@ -310,7 +309,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
 
                 if (proxies.isEmpty()) {
-                    if (fileText.listByLine().size == 1 && isUrl(fileText)) {
+                    if (fileText.listByLine().size == 1 && isHTTPorHTTPSURL(fileText)) {
                         val builder = Libcore.newURL("exclave").apply {
                             host = "subscription"
                         }
@@ -396,7 +395,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                         try {
                             val proxies = RawUpdater.parseRaw(text)
                             if (proxies.isNullOrEmpty()) {
-                                if (text.listByLine().size == 1 && isUrl(text)) {
+                                if (text.listByLine().size == 1 && isHTTPorHTTPSURL(text)) {
                                     val builder = Libcore.newURL("exclave").apply {
                                         host = "subscription"
                                     }
@@ -545,7 +544,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                         onMainDispatcher {
                             MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.confirm)
                                 .setMessage(
-                                    getString(R.string.delete_confirm_prompt) + "\n" +
+                                    getString(R.string.delete_multi_confirm_prompt) + "\n" +
                                             toClear.mapIndexedNotNull { index, proxyEntity ->
                                                 if (index < 20) {
                                                     proxyEntity.displayName()
@@ -593,7 +592,18 @@ class ConfigurationFragment @JvmOverloads constructor(
                     if (toClear.isNotEmpty()) {
                         onMainDispatcher {
                             MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.confirm)
-                                .setMessage(R.string.delete_confirm_prompt)
+                                .setMessage(
+                                    getString(R.string.delete_multi_confirm_prompt) + "\n" +
+                                            toClear.mapIndexedNotNull { index, proxyEntity ->
+                                                if (index < 20) {
+                                                    proxyEntity.displayName()
+                                                } else if (index == 20) {
+                                                    "......"
+                                                } else {
+                                                    null
+                                                }
+                                            }.joinToString("\n")
+                                )
                                 .setPositiveButton(android.R.string.ok) { _, _ ->
                                     for (profile in toClear) {
                                         adapter.groupFragments[DataStore.selectedGroup]?.adapter?.apply {
@@ -1712,8 +1722,8 @@ class ConfigurationFragment @JvmOverloads constructor(
                         val index = it.configurationIdList.indexOf(proxyEntity.id)
                         if (index >= 0) {
                             it.remove(index)
+                            undoManager.remove(index to proxyEntity)
                         }
-                        undoManager.remove(index to proxyEntity)
                     }
                 }
 

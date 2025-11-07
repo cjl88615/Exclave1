@@ -6,3 +6,7 @@ allprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+plugins {
+    id("com.google.devtools.ksp") version "2.3.0" apply false
+}

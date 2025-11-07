@@ -19,7 +19,8 @@
 
 package io.nekohasekai.sagernet.ktx
 
-import cn.hutool.core.codec.Base64
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
 import io.nekohasekai.sagernet.fmt.AbstractBean
 import io.nekohasekai.sagernet.fmt.Serializable
 import io.nekohasekai.sagernet.fmt.anytls.parseAnyTLS
@@ -40,11 +41,67 @@ import io.nekohasekai.sagernet.fmt.trojan_go.parseTrojanGo
 import io.nekohasekai.sagernet.fmt.tuic5.parseTuic
 import io.nekohasekai.sagernet.fmt.v2ray.parseV2Ray
 import io.nekohasekai.sagernet.fmt.wireguard.parseWireGuard
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.util.zip.Deflater
+import java.util.zip.Inflater
+import kotlin.io.encoding.Base64
+import kotlin.io.use
 
-fun String.decodeBase64UrlSafe(): String {
-    return Base64.decodeStr(
-        replace(' ', '-').replace('/', '_').replace('+', '-').replace("=", "")
-    )
+@Suppress("DEPRECATION")
+fun JSONObject.toStringPretty(): String {
+    return GsonBuilder().setPrettyPrinting().create().toJson(JsonParser.parseString(this.toString()))
+}
+
+inline fun <reified T : Any> JSONArray.filterIsInstance(): List<T> {
+    val list = mutableListOf<T>()
+    for (i in 0 until this.length()) {
+        if (this[i] is T) list.add(this[i] as T)
+    }
+    return list
+}
+
+fun JSONObject.optStringOrNull(key: String): String? {
+    return try {
+        getString(key)
+    } catch (_: Exception) {
+        null
+    }
+}
+
+fun JSONObject.optIntOrNull(key: String): Int? {
+    return try {
+        getInt(key)
+    } catch (_: Exception) {
+        null
+    }
+}
+
+fun JSONObject.optBooleanOrNull(key: String): Boolean? {
+    return try {
+        getBoolean(key)
+    } catch (_: Exception) {
+        null
+    }
+}
+
+fun JSONObject.optLongOrNull(key: String): Long? {
+    return try {
+        getLong(key)
+    } catch (_: Exception) {
+        null
+    }
+}
+
+fun String.decodeBase64(): String {
+    if (this.contains("-") || this.contains("_")) {
+        return String(Base64.UrlSafe.withPadding(Base64.PaddingOption.PRESENT_OPTIONAL).decode(this))
+    }
+    if (this.contains("+") || this.contains("/")) {
+        return String(Base64.Default.withPadding(Base64.PaddingOption.ABSENT_OPTIONAL).decode(this))
+    }
+    return String(Base64.Default.withPadding(Base64.PaddingOption.ABSENT_OPTIONAL).decode(this))
 }
 
 class SubscriptionFoundException(val link: String) : RuntimeException()
@@ -163,4 +220,37 @@ fun parseShareLinks(text: String): List<AbstractBean> {
 fun <T : Serializable> T.applyDefaultValues(): T {
     initializeDefaultValues()
     return this
+}
+
+fun ByteArray.zlibCompress(level: Int): ByteArray {
+    // Compress the bytes
+    // 1 to 4 bytes/char for UTF-8
+    val output = ByteArray(size * 4)
+    val compressor = Deflater(level).apply {
+        setInput(this@zlibCompress)
+        finish()
+    }
+    val compressedDataLength: Int = compressor.deflate(output)
+    compressor.end()
+    return output.copyOfRange(0, compressedDataLength)
+}
+
+fun ByteArray.zlibDecompress(): ByteArray {
+    val inflater = Inflater()
+    val outputStream = ByteArrayOutputStream()
+
+    return outputStream.use {
+        val buffer = ByteArray(1024)
+
+        inflater.setInput(this)
+
+        var count = -1
+        while (count != 0) {
+            count = inflater.inflate(buffer)
+            outputStream.write(buffer, 0, count)
+        }
+
+        inflater.end()
+        outputStream.toByteArray()
+    }
 }
